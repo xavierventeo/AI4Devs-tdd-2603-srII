@@ -75,22 +75,28 @@ describe('addCandidate', () => {
   });
 
   it('valida el payload una sola vez con los datos recibidos', async () => {
+    // Arrange
     const payload = buildValidCandidate();
 
+    // Act
     await addCandidate(payload);
 
+    // Assert
     expect(mockValidateCandidateData).toHaveBeenCalledTimes(1);
     expect(mockValidateCandidateData).toHaveBeenCalledWith(payload);
   });
 
   it('si la validación falla, no persiste candidato ni relaciones', async () => {
+    // Arrange
     const payload = buildValidCandidate({ email: 'invalido' });
     mockValidateCandidateData.mockImplementation(() => {
       throw new Error('Invalid email');
     });
 
+    // Act
     const result = addCandidate(payload);
 
+    // Assert
     await expect(result).rejects.toThrow();
     expect(MockedCandidate).not.toHaveBeenCalled();
     expect(mockCandidateSave).not.toHaveBeenCalled();
@@ -100,20 +106,28 @@ describe('addCandidate', () => {
   });
 
   it('guarda el candidato principal y retorna la entidad persistida', async () => {
+    // Arrange
     const payload = buildValidCandidate({ phone: '612345678' });
     const savedCandidate = { id: 7, ...payload };
     mockCandidateSave.mockResolvedValue(savedCandidate);
 
+    // Act
     const result = await addCandidate(payload);
 
+    // Assert
     expect(MockedCandidate).toHaveBeenCalledWith(payload);
     expect(mockCandidateSave).toHaveBeenCalledTimes(1);
     expect(result).toEqual(savedCandidate);
   });
 
   it('sin relaciones opcionales, guarda solo candidato', async () => {
-    await addCandidate(buildValidCandidate());
+    // Arrange
+    const payload = buildValidCandidate();
 
+    // Act
+    await addCandidate(payload);
+
+    // Assert
     expect(mockCandidateSave).toHaveBeenCalledTimes(1);
     expect(MockedEducation).not.toHaveBeenCalled();
     expect(MockedWorkExperience).not.toHaveBeenCalled();
@@ -121,28 +135,41 @@ describe('addCandidate', () => {
   });
 
   it('traduce error P2002 a mensaje funcional de email duplicado', async () => {
+    // Arrange
     mockCandidateSave.mockRejectedValue({ code: 'P2002' });
 
-    await expect(addCandidate(buildValidCandidate())).rejects.toThrow('The email already exists in the database');
+    // Act
+    const result = addCandidate(buildValidCandidate());
+
+    // Assert
+    await expect(result).rejects.toThrow('The email already exists in the database');
   });
 
   it('propaga errores no mapeados del guardado principal', async () => {
+    // Arrange
     const unexpectedError = new Error('Database timeout');
     mockCandidateSave.mockRejectedValue(unexpectedError);
 
-    await expect(addCandidate(buildValidCandidate())).rejects.toBe(unexpectedError);
+    // Act
+    const result = addCandidate(buildValidCandidate());
+
+    // Assert
+    await expect(result).rejects.toBe(unexpectedError);
   });
 
   describe('educations', () => {
     it('guarda una Education por cada elemento recibido', async () => {
+      // Arrange
       const educations = [
         { institution: 'UPM', title: 'Ingenieria', startDate: '2020-09-01' },
         { institution: 'UC3M', title: 'Master', startDate: '2023-09-01' },
       ];
       const payload = buildValidCandidate({ educations });
 
+      // Act
       await addCandidate(payload);
 
+      // Assert
       expect(MockedEducation).toHaveBeenCalledTimes(2);
       expect(MockedEducation).toHaveBeenNthCalledWith(1, educations[0]);
       expect(MockedEducation).toHaveBeenNthCalledWith(2, educations[1]);
@@ -150,19 +177,29 @@ describe('addCandidate', () => {
     });
 
     it('no guarda Education cuando el array está vacío', async () => {
-      await addCandidate(buildValidCandidate({ educations: [] }));
+      // Arrange
+      const payload = buildValidCandidate({ educations: [] });
 
+      // Act
+      await addCandidate(payload);
+
+      // Assert
       expect(MockedEducation).not.toHaveBeenCalled();
       expect(mockEducationSave).not.toHaveBeenCalled();
     });
 
     it('propaga error si falla Education.save', async () => {
+      // Arrange
       mockEducationSave.mockRejectedValue(new Error('Education persistence error'));
       const payload = buildValidCandidate({
         educations: [{ institution: 'UPM', title: 'Ingenieria', startDate: '2020-09-01' }],
       });
 
-      await expect(addCandidate(payload)).rejects.toThrow('Education persistence error');
+      // Act
+      const result = addCandidate(payload);
+
+      // Assert
+      await expect(result).rejects.toThrow('Education persistence error');
       expect(mockCandidateSave).toHaveBeenCalledTimes(1);
       expect(mockEducationSave).toHaveBeenCalledTimes(1);
     });
@@ -170,14 +207,17 @@ describe('addCandidate', () => {
 
   describe('workExperiences', () => {
     it('guarda un WorkExperience por cada elemento recibido', async () => {
+      // Arrange
       const workExperiences = [
         { company: 'A', position: 'Dev', startDate: '2021-01-01' },
         { company: 'B', position: 'Lead', startDate: '2023-01-01' },
       ];
       const payload = buildValidCandidate({ workExperiences });
 
+      // Act
       await addCandidate(payload);
 
+      // Assert
       expect(MockedWorkExperience).toHaveBeenCalledTimes(2);
       expect(MockedWorkExperience).toHaveBeenNthCalledWith(1, workExperiences[0]);
       expect(MockedWorkExperience).toHaveBeenNthCalledWith(2, workExperiences[1]);
@@ -185,19 +225,29 @@ describe('addCandidate', () => {
     });
 
     it('no guarda WorkExperience cuando el array está vacío', async () => {
-      await addCandidate(buildValidCandidate({ workExperiences: [] }));
+      // Arrange
+      const payload = buildValidCandidate({ workExperiences: [] });
 
+      // Act
+      await addCandidate(payload);
+
+      // Assert
       expect(MockedWorkExperience).not.toHaveBeenCalled();
       expect(mockWorkExperienceSave).not.toHaveBeenCalled();
     });
 
     it('propaga error si falla WorkExperience.save', async () => {
+      // Arrange
       mockWorkExperienceSave.mockRejectedValue(new Error('WorkExperience persistence error'));
       const payload = buildValidCandidate({
         workExperiences: [{ company: 'A', position: 'Dev', startDate: '2021-01-01' }],
       });
 
-      await expect(addCandidate(payload)).rejects.toThrow('WorkExperience persistence error');
+      // Act
+      const result = addCandidate(payload);
+
+      // Assert
+      await expect(result).rejects.toThrow('WorkExperience persistence error');
       expect(mockCandidateSave).toHaveBeenCalledTimes(1);
       expect(mockWorkExperienceSave).toHaveBeenCalledTimes(1);
     });
@@ -205,35 +255,53 @@ describe('addCandidate', () => {
 
   describe('cv', () => {
     it('guarda Resume cuando cv existe y no está vacío', async () => {
+      // Arrange
       const cv = { filePath: '/tmp/cv.pdf', fileType: 'application/pdf' };
       const payload = buildValidCandidate({ cv });
 
+      // Act
       await addCandidate(payload);
 
+      // Assert
       expect(MockedResume).toHaveBeenCalledTimes(1);
       expect(MockedResume).toHaveBeenCalledWith(cv);
       expect(mockResumeSave).toHaveBeenCalledTimes(1);
     });
 
     it('no guarda Resume cuando cv es objeto vacío', async () => {
-      await addCandidate(buildValidCandidate({ cv: {} }));
+      // Arrange
+      const payload = buildValidCandidate({ cv: {} });
 
+      // Act
+      await addCandidate(payload);
+
+      // Assert
       expect(MockedResume).not.toHaveBeenCalled();
       expect(mockResumeSave).not.toHaveBeenCalled();
     });
 
     it('no guarda Resume cuando cv no está presente', async () => {
-      await addCandidate(buildValidCandidate());
+      // Arrange
+      const payload = buildValidCandidate();
 
+      // Act
+      await addCandidate(payload);
+
+      // Assert
       expect(MockedResume).not.toHaveBeenCalled();
       expect(mockResumeSave).not.toHaveBeenCalled();
     });
 
     it('propaga error si falla Resume.save', async () => {
+      // Arrange
       mockResumeSave.mockRejectedValue(new Error('Resume persistence error'));
       const payload = buildValidCandidate({ cv: { filePath: '/tmp/cv.pdf', fileType: 'application/pdf' } });
 
-      await expect(addCandidate(payload)).rejects.toThrow('Resume persistence error');
+      // Act
+      const result = addCandidate(payload);
+
+      // Assert
+      await expect(result).rejects.toThrow('Resume persistence error');
       expect(mockCandidateSave).toHaveBeenCalledTimes(1);
       expect(mockResumeSave).toHaveBeenCalledTimes(1);
     });
@@ -242,11 +310,19 @@ describe('addCandidate', () => {
 
 describe('validateCandidateData', () => {
   it('acepta payload mínimo válido de creación', () => {
-    expect(() => realValidateCandidateData(buildValidCandidate())).not.toThrow();
+    // Arrange
+    const payload = buildValidCandidate();
+
+    // Act + Assert
+    expect(() => realValidateCandidateData(payload)).not.toThrow();
   });
 
   it('si existe id, omite validaciones obligatorias de creación', () => {
-    expect(() => realValidateCandidateData({ id: 99, email: 'email-invalido' })).not.toThrow();
+    // Arrange
+    const payload = { id: 99, email: 'email-invalido' };
+
+    // Act + Assert
+    expect(() => realValidateCandidateData(payload)).not.toThrow();
   });
 
   it.each([
@@ -256,6 +332,9 @@ describe('validateCandidateData', () => {
     ['address demasiado larga', buildValidCandidate({ address: 'A'.repeat(101) }), 'Invalid address'],
     ['cv mal formado', buildValidCandidate({ cv: { filePath: '/tmp/cv.pdf' } }), 'Invalid CV data'],
   ])('rechaza %s', (_label, payload, message) => {
+    // Arrange: payload y message vienen del caso parametrizado
+
+    // Act + Assert
     expect(() => realValidateCandidateData(payload)).toThrow(message);
   });
 
@@ -291,6 +370,9 @@ describe('validateCandidateData', () => {
       'Invalid end date',
     ],
   ])('rechaza education con %s', (_label, payload, message) => {
+    // Arrange: payload y message vienen del caso parametrizado
+
+    // Act + Assert
     expect(() => realValidateCandidateData(payload)).toThrow(message);
   });
 
@@ -345,6 +427,9 @@ describe('validateCandidateData', () => {
       'Invalid end date',
     ],
   ])('rechaza workExperience con %s', (_label, payload, message) => {
+    // Arrange: payload y message vienen del caso parametrizado
+
+    // Act + Assert
     expect(() => realValidateCandidateData(payload)).toThrow(message);
   });
 });
